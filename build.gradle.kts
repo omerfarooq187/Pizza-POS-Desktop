@@ -16,11 +16,21 @@ repositories {
 }
 
 dependencies {
-    // Note, if you develop a library, you should use compose.desktop.common.
-    // compose.desktop.currentOs should be used in launcher-sourceSet
-    // (in a separate module for demo project and in testMain).
-    // With compose.desktop.common you will also lose @Preview functionality
+
     implementation(compose.desktop.currentOs)
+    implementation("org.jetbrains.exposed:exposed-core:0.44.0")
+    implementation("org.jetbrains.exposed:exposed-dao:0.44.0")
+    implementation("org.jetbrains.exposed:exposed-jdbc:0.44.0")
+    implementation("org.xerial:sqlite-jdbc:3.43.2.2")
+    implementation("com.h2database:h2:2.2.224")
+    implementation("io.insert-koin:koin-core:3.5.3")
+    implementation("io.insert-koin:koin-compose:1.1.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.7.3")
+
+
+    implementation("org.slf4j:slf4j-simple:2.0.9")
+
 }
 
 compose.desktop {

@@ -1,3 +1,6 @@
 package data.model
 
-data class OrderItem()
+data class OrderItem(
+    val variantId: Int,
+    val quantity: Int
+)
