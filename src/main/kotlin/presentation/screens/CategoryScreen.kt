@@ -1,6 +1,6 @@
 package presentation.screens
 
-// presentation/screen/CategoryScreen.kt
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -28,13 +28,13 @@ import androidx.compose.ui.unit.dp
 import data.model.Category
 import org.koin.compose.koinInject
 import presentation.viewmodel.CategoryViewModel
+import presentation.viewmodel.MenuItemViewModel
 
 
 // presentation/screen/CategoryScreen.kt
 @Composable
-fun CategoryScreen() {
+fun CategoryScreen(onSelectedCategory:(Int)-> Unit) {
     val viewModel: CategoryViewModel = koinInject()
-
     Column(modifier = Modifier.padding(16.dp)) {
         // Create New Button
         Button(onClick = { viewModel.showCreateCategoryDialog() }) {
@@ -70,7 +70,8 @@ fun CategoryScreen() {
             else -> CategoryList(
                 categories = viewModel.categories,
                 onDelete = viewModel::deleteCategory,
-                onEdit = viewModel::showEditCategoryDialog
+                onEdit = viewModel::showEditCategoryDialog,
+                onSelect = onSelectedCategory
             )
         }
     }
@@ -80,11 +81,15 @@ fun CategoryScreen() {
 private fun CategoryList(
     categories: List<Category>,
     onDelete: (Int) -> Unit,
-    onEdit: (Category) -> Unit
+    onEdit: (Category) -> Unit,
+    onSelect: (Int) -> Unit
 ) {
+    val menuItemViewModel: MenuItemViewModel = koinInject()
     LazyColumn {
         items(categories) { category ->
-            CategoryItem(category, onDelete, onEdit)
+            CategoryItem(category, onDelete, onEdit) {
+                onSelect(category.id)
+            }
         }
     }
 }
@@ -94,7 +99,8 @@ private fun CategoryList(
 private fun CategoryItem(
     category: Category,
     onDelete: (Int) -> Unit,
-    onEdit: (Category) -> Unit
+    onEdit: (Category) -> Unit,
+    onClick: ()-> Unit
 ) {
     Card(
         modifier = Modifier
@@ -102,7 +108,11 @@ private fun CategoryItem(
             .padding(vertical = 4.dp)
     ) {
         Row(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier
+                .padding(16.dp)
+                .clickable {
+                    onClick()
+                },
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(category.name, style = MaterialTheme.typography.h6)

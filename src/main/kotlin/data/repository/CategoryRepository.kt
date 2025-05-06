@@ -1,7 +1,7 @@
 package data.repository
 
 import data.model.Category
-import database.CategoriesTable
+import database.Categories
 import org.jetbrains.exposed.sql.Op
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.neq
@@ -25,17 +25,17 @@ interface CategoryRepository {
 
 class CategoryRepositoryImpl: CategoryRepository {
     override suspend fun getAllCategories(): List<Category> = transaction {
-        CategoriesTable.selectAll().map {
+        Categories.selectAll().map {
             Category(
-                id = it[CategoriesTable.id],
-                name = it[CategoriesTable.name]
+                id = it[Categories.id],
+                name = it[Categories.name]
             )
         }.toList()
     }
 
     override suspend fun createCategory(category: Category) {
         transaction {
-            CategoriesTable.insert {
+            Categories.insert {
                 it[name] = category.name
             }
         }
@@ -43,7 +43,7 @@ class CategoryRepositoryImpl: CategoryRepository {
 
     override suspend fun updateCategory(category: Category) {
         transaction {
-            CategoriesTable.update({ CategoriesTable.id eq category.id}) {
+            Categories.update({ Categories.id eq category.id}) {
                 it[name] = category.name
             }
         }
@@ -51,16 +51,16 @@ class CategoryRepositoryImpl: CategoryRepository {
 
     override suspend fun deleteCategory(categoryId: Int) {
         transaction {
-            CategoriesTable.deleteWhere {
-                CategoriesTable.id eq categoryId
+            Categories.deleteWhere {
+                Categories.id eq categoryId
             }
         }
     }
 
     override suspend fun categoryExists(name: String, excludeId: Int?): Boolean = transaction {
-        val query = CategoriesTable.name eq name
-        val excludeQuery = excludeId?.let { CategoriesTable.id neq it }
-        CategoriesTable.select {
+        val query = Categories.name eq name
+        val excludeQuery = excludeId?.let { Categories.id neq it }
+        Categories.select {
             query and (excludeQuery?: Op.TRUE)
         }.count() > 0
     }
