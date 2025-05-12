@@ -8,15 +8,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.AlertDialog
-import androidx.compose.material.Button
-import androidx.compose.material.Card
-import androidx.compose.material.CircularProgressIndicator
-import androidx.compose.material.Icon
-import androidx.compose.material.IconButton
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.OutlinedTextField
-import androidx.compose.material.Text
+import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
@@ -115,7 +107,7 @@ private fun CategoryItem(
                 },
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(category.name, style = MaterialTheme.typography.h6)
+            Text(category.name, style = MaterialTheme.typography.headlineSmall)
             Spacer(Modifier.weight(1f))
             IconButton(onClick = { onEdit(category) }) {
                 Icon(Icons.Default.Edit, "Edit")
@@ -152,8 +144,8 @@ fun CategoryCreationDialog(
                     if (errorMessage != null) {
                         Text(
                             text = errorMessage,
-                            color = MaterialTheme.colors.error,
-                            style = MaterialTheme.typography.caption,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.labelSmall,
                             modifier = Modifier.padding(top = 4.dp)
                         )
                     }
@@ -202,8 +194,8 @@ fun CategoryEditDialog(
                     if (errorMessage != null) {
                         Text(
                             text = errorMessage,
-                            color = MaterialTheme.colors.error,
-                            style = MaterialTheme.typography.caption,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.labelSmall,
                             modifier = Modifier.padding(top = 4.dp)
                         )
                     }

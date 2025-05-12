@@ -1,13 +1,11 @@
 package di
 
-import data.repository.CategoryRepository
-import data.repository.CategoryRepositoryImpl
-import data.repository.MenuRepository
-import data.repository.MenuRepositoryImpl
+import data.repository.*
 import database.PosDatabase
 import org.koin.dsl.module
 import presentation.viewmodel.CategoryViewModel
 import presentation.viewmodel.MenuItemViewModel
+import presentation.viewmodel.OrderViewModel
 
 val appModule = module {
     single(createdAtStart = true) {
@@ -17,4 +15,6 @@ val appModule = module {
     single { CategoryViewModel() }
     single<MenuRepository> { MenuRepositoryImpl() }
     single { MenuItemViewModel() }
+    single<OrderRepository> { OrderRepositoryImpl() }
+    single { OrderViewModel() }
 }

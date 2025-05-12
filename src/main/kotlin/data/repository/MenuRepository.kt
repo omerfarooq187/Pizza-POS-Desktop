@@ -14,6 +14,7 @@ import org.jetbrains.exposed.sql.update
 
 interface MenuRepository {
     suspend fun getItemsByCategory(categoryId: Int): List<MenuItem>
+    suspend fun getItemById(itemId: Int): MenuItem
     suspend fun createItem(item: MenuItem)
     suspend fun updateItem(item: MenuItem)
     suspend fun deleteItem(itemId: Int)
@@ -46,6 +47,36 @@ class MenuRepositoryImpl: MenuRepository {
                         isActive = menuItemRow[MenuItems.isActive]
                     )
                 }
+        }
+    }
+
+    override suspend fun getItemById(itemId: Int): MenuItem {
+        return transaction {
+            MenuItems
+                .select { MenuItems.id eq itemId }
+                .singleOrNull()
+                ?.let { menuItemRow ->
+                    val variants = ItemVariants
+                        .select { ItemVariants.itemId eq itemId }
+                        .map { variantRow ->
+                            ItemVariant(
+                                size = variantRow[ItemVariants.size],
+                                price = variantRow[ItemVariants.price],
+                                memberPrice = variantRow[ItemVariants.memberPrice]
+                            )
+                        }
+
+                    MenuItem(
+                        id = menuItemRow[MenuItems.id].value,
+                        categoryId = menuItemRow[MenuItems.categoryId],
+                        name = menuItemRow[MenuItems.name],
+                        description = menuItemRow[MenuItems.description],
+                        variants = variants,
+                        isActive = menuItemRow[MenuItems.isActive],
+                        discountType = menuItemRow[MenuItems.discountType],
+                        discountValue = menuItemRow[MenuItems.discountValue]
+                    )
+                } ?: throw NoSuchElementException("Menu item with ID $itemId not found")
         }
     }
 
@@ -84,7 +115,7 @@ class MenuRepositoryImpl: MenuRepository {
             }
 
             // Delete old variants
-            ItemVariants.deleteWhere { ItemVariants.itemId eq item.id }
+            ItemVariants.deleteWhere { itemId eq item.id }
 
             // Insert new variants
             item.variants.forEach { variant ->

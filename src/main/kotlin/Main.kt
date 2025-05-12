@@ -1,24 +1,38 @@
 // Main.kt
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Analytics
+import androidx.compose.material.icons.filled.Category
+import androidx.compose.material.icons.filled.PointOfSale
+import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material3.*
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
-import androidx.compose.ui.window.singleWindowApplication
 import di.appModule
 import org.koin.compose.koinInject
 import org.koin.core.context.startKoin
 import presentation.screens.CategoryScreen
 import presentation.screens.MenuItemListScreen
 import presentation.screens.MenuItemScreen
+import presentation.screens.OrderScreen
 import presentation.theme.AppTheme
 import presentation.viewmodel.MenuItemViewModel
 
@@ -46,54 +60,84 @@ fun TabbedInterface() {
     var selectedCategoryId by remember { mutableStateOf<Int?>(null) }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        // Top App Bar
+
+        // Top App Bar with Logo and Title
         Surface(
-            modifier = Modifier.fillMaxWidth(),
-            color = MaterialTheme.colorScheme.primary,
-            tonalElevation = 8.dp
+            modifier = Modifier
+                .fillMaxWidth()
+                .shadow(4.dp),
+            color = Color(0xFFFE724C) // Soft Pizza-Themed Orange
         ) {
             Row(
-                modifier = Modifier.padding(16.dp),
+                modifier = Modifier
+                    .padding(horizontal = 20.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = Icons.Default.RestaurantMenu,
-                    contentDescription = "Logo",
-                    tint = Color.White
+                Image(
+                    painter = painterResource("logo.jpg"),
+                    contentDescription = "App Logo",
+                    modifier = Modifier
+                        .size(60.dp)
+                        .clip(RoundedCornerShape(12.dp)),
+                    contentScale = ContentScale.Crop
                 )
                 Spacer(modifier = Modifier.width(16.dp))
                 Text(
                     text = "Pizza Hut POS",
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = Color.White
+                    style = MaterialTheme.typography.headlineSmall.copy(
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold
+                    )
                 )
             }
         }
 
-        // Tab Navigation
-        ScrollableTabRow(
+        TabRow(
             selectedTabIndex = selectedTab.ordinal,
-            containerColor = MaterialTheme.colorScheme.secondary,
-            contentColor = Color.White,
-            edgePadding = 16.dp
+            containerColor = Color(0xFFFFF3E0), // Light Cream Background
+            contentColor = Color(0xFFFE724C),
+            indicator = { tabPositions ->
+                TabRowDefaults.Indicator(
+                    Modifier
+                        .tabIndicatorOffset(tabPositions[selectedTab.ordinal])
+                        .height(3.dp),
+                    color = Color(0xFFFE724C)
+                )
+            },
+            divider = {
+                Divider(color = Color.LightGray, thickness = 1.dp)
+            }
         ) {
             Tab.entries.forEach { tab ->
-                Tab(
-                    selected = selectedTab == tab,
-                    onClick = { selectedTab = tab },
-                    icon = {
-                        Icon(
-                            imageVector = tab.icon,
-                            contentDescription = tab.title
-                        )
-                    },
-                    text = {
-                        Text(
-                            text = tab.title,
-                            style = MaterialTheme.typography.labelLarge
-                        )
+                key(tab) { // Key for stability
+                    val isSelected = selectedTab == tab
+                    // Memoize NON-COMPOSABLE values only
+                    val iconTint = remember(isSelected) {
+                        if (isSelected) Color(0xFFFE724C) else Color.Gray
                     }
-                )
+                    val textStyle =
+                        if (isSelected) MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold)
+                        else MaterialTheme.typography.bodyLarge
+
+                    Tab(
+                        selected = isSelected,
+                        onClick = { selectedTab = tab },
+                        icon = {
+                            Icon( // Composable called OUTSIDE remember
+                                imageVector = tab.icon,
+                                contentDescription = tab.title,
+                                tint = iconTint // Use memoized value
+                            )
+                        },
+                        text = {
+                            Text( // Composable called OUTSIDE remember
+                                text = tab.title,
+                                color = iconTint,
+                                style = textStyle
+                            )
+                        }
+                    )
+                }
             }
         }
 
@@ -101,25 +145,39 @@ fun TabbedInterface() {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
+                .background(Color.White)
                 .padding(16.dp)
         ) {
             when (selectedTab) {
                 Tab.CATEGORIES -> {
-                    CategoryScreen (
-                        onSelectedCategory = { categoryId ->
-                            selectedCategoryId = categoryId
-                            selectedTab = Tab.MENU_ITEMS
-                        }
-                    )
+                    if (selectedTab == Tab.CATEGORIES) {
+                        CategoryScreen(
+                            onSelectedCategory = { categoryId ->
+                                selectedCategoryId = categoryId
+                                selectedTab = Tab.MENU_ITEMS
+                            }
+                        )
+                    }
                 }
-                Tab.MENU_ITEMS -> MenuItemScreen(selectedCategoryId)
-                Tab.ORDERS -> OrderScreen()
+
+                Tab.MENU_ITEMS -> {
+                    if (selectedTab == Tab.MENU_ITEMS) {
+                        MenuItemScreen(selectedCategoryId)
+                    }
+                }
+                Tab.ORDERS -> {
+                    if (selectedTab == Tab.ORDERS) {
+                        OrderScreen {
+
+                        }
+                    }
+                }
                 Tab.REPORTS -> ReportScreen()
             }
         }
     }
 }
+
 
 enum class Tab(
     val title: String,
@@ -131,24 +189,6 @@ enum class Tab(
     REPORTS("Reports", Icons.Default.Analytics)
 }
 
-// Placeholder screens with enhanced styling
-//@Composable
-//fun Category() {
-//    Surface(
-//        modifier = Modifier.fillMaxSize(),
-//        shape = MaterialTheme.shapes.medium,
-//        tonalElevation = 4.dp
-//    ) {
-//        Column(modifier = Modifier.padding(16.dp)) {
-//            Text(
-//                text = "Categories Management",
-//                style = MaterialTheme.typography.headlineSmall,
-//                color = MaterialTheme.colorScheme.primary
-//            )
-//            CategoryScreen()
-//        }
-//    }
-//}
 
 @Composable
 fun MenuScreen(selectedCategoryId: Int?) {
@@ -182,23 +222,36 @@ fun MenuScreen(selectedCategoryId: Int?) {
     }
 }
 
+
 @Composable
-fun OrderScreen() {
-    Surface(
-        modifier = Modifier.fillMaxSize(),
-        shape = MaterialTheme.shapes.medium,
-        tonalElevation = 4.dp
+fun CustomTabs(tabs: List<Tab>, selectedTab: Tab, onTabSelected: (Tab) -> Unit) {
+    LazyRow(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = "Order Management",
-                style = MaterialTheme.typography.headlineSmall,
-                color = MaterialTheme.colorScheme.primary
-            )
-            // Your order content here
+        items(tabs, key = { it }) { tab ->
+            val isSelected = tab == selectedTab
+            Box(
+                modifier = Modifier
+                    .clickable { onTabSelected(tab) }
+                    .padding(16.dp)
+                    .background(
+                        color = if (isSelected) Color(0xFFFE724C) else Color.Transparent,
+                        shape = RoundedCornerShape(8.dp)
+                    )
+                    .padding(8.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = tab.title,
+                    color = if (isSelected) Color.White else Color.Gray
+                )
+            }
         }
     }
 }
+
+
 
 @Composable
 fun ReportScreen() {

@@ -28,6 +28,9 @@ object PosDatabase {
                 SchemaUtils.create(Categories)
                 SchemaUtils.create(MenuItems)
                 SchemaUtils.create(ItemVariants)
+                SchemaUtils.create(Orders)
+                SchemaUtils.create(OrderItems)
+                SchemaUtils.create(Members)
                 println("✅ Database tables created successfully")
             }
         } catch (e: ClassNotFoundException) {

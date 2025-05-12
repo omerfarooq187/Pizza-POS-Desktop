@@ -1,16 +1,9 @@
 package presentation.screens
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.DropdownMenuItem
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
@@ -26,6 +19,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import data.model.Category
 import data.model.ItemVariant
@@ -253,7 +247,8 @@ fun MenuItemListScreen(categoryId: Int) {
                     MenuItemCard(
                         item = item,
                         onEdit = { viewModel.startEditItem(item) },
-                        onDelete = { viewModel.deleteItem(item.id) }
+                        onDelete = { viewModel.deleteItem(item.id) },
+                        onToggle = { viewModel.toggleActive(it)}
                     )
                 }
             }
@@ -264,52 +259,105 @@ fun MenuItemListScreen(categoryId: Int) {
 @Composable
 fun MenuItemCard(
     item: MenuItem,
-    onEdit:() -> Unit,
-    onDelete: () -> Unit
-    ) {
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+    onToggle: (Int) -> Unit
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp)
+            .padding(vertical = 10.dp, horizontal = 6.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            // Header
+        Column(modifier = Modifier.padding(20.dp)) {
+
+            // Header with name and active switch
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(item.name, style = MaterialTheme.typography.headlineSmall)
-                Spacer(Modifier.weight(1f))
+                Text(
+                    text = item.name,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.weight(1f)
+                )
+
                 Switch(
                     checked = item.isActive,
-                    onCheckedChange = { /* Implement toggle */ }
+                    onCheckedChange = {
+                        onToggle(item.id)
+                    },
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = MaterialTheme.colorScheme.primary,
+                        uncheckedThumbColor = Color.LightGray
+                    )
                 )
             }
 
+            Spacer(modifier = Modifier.height(6.dp))
+
             // Description
             item.description?.let {
-                Text(it, style = MaterialTheme.typography.bodyMedium)
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.Gray,
+                    modifier = Modifier.padding(bottom = 12.dp)
+                )
             }
 
-            // Variants
-            Text("Pricing:", style = MaterialTheme.typography.displaySmall)
+            // Variant Pricing
+            Text(
+                text = "Pricing",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Medium
+            )
+
+            Spacer(modifier = Modifier.height(6.dp))
+
             item.variants.forEach { variant ->
                 Row(
-                    modifier = Modifier.padding(vertical = 4.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 2.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("${variant.size}: $${variant.price}",
-                        modifier = Modifier.weight(1f))
+                    Text(
+                        text = "${variant.size}: $${variant.price}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.weight(1f)
+                    )
+
                     variant.memberPrice?.let {
-                        Text("Member: $$it", color = Color.Gray)
+                        Text(
+                            text = "Member: $$it",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.Gray
+                        )
                     }
                 }
             }
 
-            // Actions
-            Row {
-                IconButton(onClick = { onEdit() }) {
-                    Icon(Icons.Default.Edit, "Edit")
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Actions: Edit and Delete
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End
+            ) {
+                IconButton(onClick = onEdit) {
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = "Edit",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
                 }
-                IconButton(onClick = { onDelete() }) {
-                    Icon(Icons.Default.Delete, "Delete")
+                IconButton(onClick = onDelete) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Delete",
+                        tint = MaterialTheme.colorScheme.error
+                    )
                 }
             }
         }
