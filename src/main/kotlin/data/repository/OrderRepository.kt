@@ -2,7 +2,6 @@ package data.repository
 
 import data.model.Order
 import data.model.OrderItem
-import data.model.OrderStatus
 import database.Members
 import database.MenuItems
 import database.OrderItems
@@ -16,7 +15,7 @@ import org.joda.time.DateTime
 interface OrderRepository {
     // Order Operations
     suspend fun createOrder(order: Order): Int
-    suspend fun updateOrderStatus(orderId: Int, status: OrderStatus)
+//    suspend fun updateOrderStatus(orderId: Int)
     suspend fun getOrdersByDateRange(start: DateTime, end: DateTime): List<Order>
 
     // Order Item Operations
@@ -24,12 +23,19 @@ interface OrderRepository {
     suspend fun removeItemFromOrder(orderItemId: Int)
 
     // Reports
+    // Add to OrderRepository interface
+//    suspend fun getOrdersByStatus(status: OrderStatus): List<Order>
+
     suspend fun getDailyOrders(): List<Order>
     suspend fun getWeeklyOrders(): List<Order>
     suspend fun getMonthlyOrders(): List<Order>
     suspend fun searchSoldItems(itemName: String): List<OrderItem>
 
     suspend fun isPhoneNumberRegistered(phone: String): Boolean
+
+
+    suspend fun getTodayTotalSales(): Double
+    suspend fun getTodayTotalOrdersCount(): Long
 
 }
 
@@ -43,7 +49,6 @@ class OrderRepositoryImpl: OrderRepository {
             it[totalAmount] = order.totalAmount
             it[memberId] = order.memberId
             it[isMember] = order.isMember
-            it[status] = order.status
         } get Orders.id
 
         // Insert order items
@@ -68,13 +73,13 @@ class OrderRepositoryImpl: OrderRepository {
                 .map { rowToOrder(it) }
         }
 
-    override suspend fun updateOrderStatus(orderId: Int, status: OrderStatus) {
-        transaction {
-            Orders.update({ Orders.id eq orderId }) {
-                it[Orders.status] = status
-            }
-        }
-    }
+//    override suspend fun updateOrderStatus(orderId: Int, status: OrderStatus) {
+//        transaction {
+//            Orders.update({ Orders.id eq orderId }) {
+//                it[Orders.status] = status
+//            }
+//        }
+//    }
 
     override suspend fun addItemToOrder(orderId: Int, item: OrderItem) {
         transaction {
@@ -95,6 +100,10 @@ class OrderRepositoryImpl: OrderRepository {
             OrderItems.deleteWhere { OrderItems.id eq orderItemId }
         }
     }
+
+//    override suspend fun getOrdersByStatus(status: OrderStatus): List<Order> = transaction {
+//        Orders.select { Orders.status eq status }.map { rowToOrder(it) }
+//    }
 
     override suspend fun getDailyOrders(): List<Order> {
         val todayStart = DateTime.now().withTimeAtStartOfDay()
@@ -138,12 +147,13 @@ class OrderRepositoryImpl: OrderRepository {
             quantity = row[OrderItems.quantity],
             price = row[OrderItems.price],
             memberPriceApplied = row[OrderItems.memberPriceApplied],
-            discountApplied = row[OrderItems.discountApplied]
+            discountApplied = row[OrderItems.discountApplied],
+            itemName = row[MenuItems.name]
         )
     }
 
     private fun rowToOrder(row: ResultRow): Order {
-        val items = OrderItems
+        val items = (OrderItems innerJoin MenuItems)
             .select { OrderItems.orderId eq row[Orders.id].value }
             .map { rowToOrderItem(it) }
 
@@ -156,9 +166,29 @@ class OrderRepositoryImpl: OrderRepository {
             totalAmount = row[Orders.totalAmount],
             memberId = row[Orders.memberId],
             isMember = row[Orders.isMember],
-            status = row[Orders.status],
+//            status = row[Orders.status],
             createdAt = row[Orders.createdAt]
         )
     }
+
+    override suspend fun getTodayTotalSales(): Double = transaction {
+        val todayStart = DateTime.now().withTimeAtStartOfDay()
+        val todayEnd = todayStart.plusDays(1)
+
+        Orders
+            .slice(Orders.totalAmount.sum())
+            .select { Orders.createdAt.between(todayStart, todayEnd) }
+            .firstOrNull()?.getOrNull(Orders.totalAmount.sum()) ?: 0.0
+    }
+
+    override suspend fun getTodayTotalOrdersCount(): Long = transaction {
+        val todayStart = DateTime.now().withTimeAtStartOfDay()
+        val todayEnd = todayStart.plusDays(1)
+
+        Orders
+            .select { Orders.createdAt.between(todayStart, todayEnd) }
+            .count()
+    }
+
 
 }

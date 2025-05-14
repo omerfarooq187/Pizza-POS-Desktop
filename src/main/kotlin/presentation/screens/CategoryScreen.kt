@@ -29,7 +29,12 @@ fun CategoryScreen(onSelectedCategory:(Int)-> Unit) {
     val viewModel: CategoryViewModel = koinInject()
     Column(modifier = Modifier.padding(16.dp)) {
         // Create New Button
-        Button(onClick = { viewModel.showCreateCategoryDialog() }) {
+        Button(
+            onClick = { viewModel.showCreateCategoryDialog() },
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color.Red
+            )
+        ) {
             Text("Create New Category")
         }
 

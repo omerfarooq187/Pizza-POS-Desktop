@@ -144,8 +144,11 @@ class MenuItemViewModel: KoinComponent {
                 menuRepo.updateItem(updatedItem)
                 // Refresh items list
                 loadItems(selectedCategory?.id ?: return@launch)
-                clearForm()
                 error = null
+                clearForm()
+                showCreateItemDialog = false
+                showEditDialog = false
+                loadItems(currentCategoryId!!)
             } catch (e: Exception) {
                 error = "Failed to update item: ${e.message}"
             }

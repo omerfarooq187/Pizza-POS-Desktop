@@ -29,20 +29,17 @@ import org.koin.compose.koinInject
 import presentation.viewmodel.OrderViewModel
 
 @Composable
-fun OrderScreen(
-    onShowReports: () -> Unit
-) {
+fun OrderScreen(onShowReports: ()->Unit) {
     val viewModel: OrderViewModel = koinInject()
     val currentOrder by viewModel.currentOrder
     val isMember by viewModel.isMember
-    var customerName by remember { mutableStateOf(currentOrder.customerName) }
-    var phone by remember { mutableStateOf(currentOrder.phone) }
-    var email by remember { mutableStateOf(currentOrder.email) }
     val coroutineScope = rememberCoroutineScope()
 
-    var showAddItemsDialog by remember {
-        mutableStateOf(false)
+    LaunchedEffect(Unit) {
+        viewModel.loadMenuCategories()
     }
+
+    var showAddItemsDialog by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -57,35 +54,43 @@ fun OrderScreen(
         )
 
         OutlinedTextField(
-            value = customerName,
-            onValueChange = { customerName = it },
+            value = currentOrder.customerName,
+            onValueChange = { name ->
+                viewModel.updateContactInfo(
+                    name,
+                    currentOrder.phone,
+                    currentOrder.email
+                )
+            },
             label = { Text("Customer Name") },
-            placeholder = { Text("N/A")},
             modifier = Modifier.fillMaxWidth()
         )
 
         OutlinedTextField(
-            value = phone,
-            onValueChange = { phone = it },
+            value = currentOrder.phone,
+            onValueChange = { phone ->
+                viewModel.updateContactInfo(
+                    currentOrder.customerName,
+                    phone,
+                    currentOrder.email
+                )
+            },
             label = { Text("Phone Number") },
-            placeholder = { Text("N/A")},
             modifier = Modifier.fillMaxWidth()
         )
 
         OutlinedTextField(
-            value = email,
-            onValueChange = { email = it },
+            value = currentOrder.email,
+            onValueChange = { email ->
+                viewModel.updateContactInfo(
+                    currentOrder.customerName,
+                    currentOrder.phone,
+                    email
+                )
+            },
             label = { Text("Email Address") },
-            placeholder = { Text("N/A")},
             modifier = Modifier.fillMaxWidth()
         )
-
-        Button(
-            onClick = { viewModel.updateContactInfo(customerName, phone, email) },
-            modifier = Modifier.padding(vertical = 8.dp)
-        ) {
-            Text("Save Contact Info")
-        }
 
         // Member Validation Section
         Divider(modifier = Modifier.padding(vertical = 16.dp))
@@ -119,14 +124,12 @@ fun OrderScreen(
             modifier = Modifier.padding(top = 4.dp)
         )
 
-
         // Order Items Section
         Divider(modifier = Modifier.padding(vertical = 16.dp))
-        Row (
+        Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
-            modifier = Modifier
-                .fillMaxWidth()
+            modifier = Modifier.fillMaxWidth()
         ) {
             Text(
                 "Order Items",
@@ -178,29 +181,22 @@ fun OrderScreen(
             )
         }
 
-        // Action Buttons
-        Row(
-            horizontalArrangement = Arrangement.SpaceEvenly,
+        // Finalize Order Button
+        Button(
+            onClick = {
+                coroutineScope.launch {
+                    viewModel.finalizeOrder()
+                    onShowReports()
+                }
+            },
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color(0xFFFE724C)
+            ),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 16.dp)
         ) {
-            Button(
-                onClick = {
-                    coroutineScope.launch {
-                        viewModel.finalizeOrder()
-                    }
-                },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFFFE724C)
-                )
-            ) {
-                Text("Finalize Order")
-            }
-
-            Button(onClick = onShowReports) {
-                Text("View Reports")
-            }
+            Text("Finalize Order", style = MaterialTheme.typography.titleMedium)
         }
     }
 }
@@ -469,6 +465,9 @@ private fun MenuItemCard(item: MenuItem, viewModel: OrderViewModel) {
 @Composable
 private fun VariantRow(item: MenuItem, variant: ItemVariant, viewModel: OrderViewModel) {
     var quantity by remember { mutableStateOf(1) }
+    val isAdded = viewModel.currentOrder.value.items.any {
+        it.itemId == item.id && it.variantSize == variant.size
+    }
 
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -522,12 +521,15 @@ private fun VariantRow(item: MenuItem, variant: ItemVariant, viewModel: OrderVie
                     viewModel.addItemToOrder(item, variant, quantity)
                     quantity = 1
                 },
+                enabled = !isAdded,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color(0xFFFE724C),
-                    contentColor = Color.White
+                    contentColor = Color.White,
+                    disabledContainerColor = Color.Gray.copy(alpha = 0.2f),
+                    disabledContentColor = Color.Gray
                 )
             ) {
-                Text("Add")
+                Text(if (isAdded) "Added" else "Add")
             }
         }
     }

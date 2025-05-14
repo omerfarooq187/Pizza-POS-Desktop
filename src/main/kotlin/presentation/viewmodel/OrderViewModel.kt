@@ -42,7 +42,8 @@ class OrderViewModel : KoinComponent {
             variantSize = variant.size,
             quantity = quantity,
             price = finalPrice,
-            memberPriceApplied = _isMember.value && isItemEligibleForDiscount(item)
+            memberPriceApplied = _isMember.value && isItemEligibleForDiscount(item),
+            itemName = item.name
         )
 
         _currentOrder.value = _currentOrder.value.copy(
@@ -66,16 +67,16 @@ class OrderViewModel : KoinComponent {
         return item.categoryId == 1 // Example: Pizza category
     }
 
-    fun validateMember(phone: String) {
-        coroutineScope.launch {
-            // Simple validation (replace with actual implementation)
-            _isMember.value = orderRepo.isPhoneNumberRegistered(phone)
-
-            if (_isMember.value) {
-                recalculatePrices()
-            }
-        }
-    }
+//    fun validateMember(phone: String) {
+//        coroutineScope.launch {
+//            // Simple validation (replace with actual implementation)
+//            _isMember.value = orderRepo.isPhoneNumberRegistered(phone)
+//
+//            if (_isMember.value) {
+//                recalculatePrices()
+//            }
+//        }
+//    }
 
     private suspend fun recalculatePrices() {
         val updatedItems = _currentOrder.value.items.map { item ->
@@ -118,7 +119,7 @@ class OrderViewModel : KoinComponent {
         )
     }
 
-    private fun loadMenuCategories() {
+    fun loadMenuCategories() {
         coroutineScope.launch {
             val categories = categoryRepo.getAllCategories()
             val categoriesWithItems = categories.map { category ->
@@ -135,4 +136,6 @@ class OrderViewModel : KoinComponent {
         _isMember.value = isMember
         recalculatePrices()
     }
+
+
 }

@@ -232,7 +232,12 @@ fun MenuItemListScreen(categoryId: Int) {
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text("Manage Menu Items", style = MaterialTheme.typography.headlineSmall)
-            Button(onClick = { viewModel.showCreateItemDialog = true }) {
+            Button(
+                onClick = { viewModel.showCreateItemDialog = true },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color.Red
+                )
+            ) {
                 Text("Add New Item")
             }
         }

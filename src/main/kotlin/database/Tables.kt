@@ -1,7 +1,6 @@
 package database
 
 import data.model.DiscountType
-import data.model.OrderStatus
 import org.jetbrains.exposed.dao.id.IntIdTable
 import org.jetbrains.exposed.sql.Table
 import org.jetbrains.exposed.sql.jodatime.datetime
@@ -40,7 +39,7 @@ object Orders : IntIdTable("orders") {
     val memberId = integer("member_id").nullable()  // If member exists
     val isMember = bool("is_member").default(false)
     val createdAt = datetime("created_at").default(DateTime.now())
-    val status = enumerationByName("status", 20, OrderStatus::class).default(OrderStatus.ACTIVE)
+
 }
 
 object OrderItems : IntIdTable("order_items") {
@@ -56,5 +55,4 @@ object OrderItems : IntIdTable("order_items") {
 object Members : IntIdTable("members") {
     val phone = varchar("phone", 20).uniqueIndex()
     val name = varchar("name", 50)
-    val joinDate = datetime("join_date")
 }

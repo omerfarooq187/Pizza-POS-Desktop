@@ -3,9 +3,7 @@ package di
 import data.repository.*
 import database.PosDatabase
 import org.koin.dsl.module
-import presentation.viewmodel.CategoryViewModel
-import presentation.viewmodel.MenuItemViewModel
-import presentation.viewmodel.OrderViewModel
+import presentation.viewmodel.*
 
 val appModule = module {
     single(createdAtStart = true) {
@@ -17,4 +15,6 @@ val appModule = module {
     single { MenuItemViewModel() }
     single<OrderRepository> { OrderRepositoryImpl() }
     single { OrderViewModel() }
+    single { ReportViewModel() }
+    single { DashboardViewModel() }
 }

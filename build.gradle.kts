@@ -29,6 +29,9 @@ dependencies {
     // Compose dependencies (auto-versioned with the plugin)
     implementation(compose.material3)
     implementation(compose.materialIconsExtended)
+
+    implementation("com.itextpdf:itext7-core:7.2.3")
+    implementation("org.apache.poi:poi:5.2.2")
 }
 
 compose.desktop {
