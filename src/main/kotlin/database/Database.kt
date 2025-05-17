@@ -7,6 +7,7 @@ import org.sqlite.SQLiteException
 import java.sql.DriverManager
 
 object PosDatabase {
+
     fun init() {
         try {
             // Load SQLite JDBC driver explicitly
@@ -23,6 +24,7 @@ object PosDatabase {
                 println("✅ Database connection established")
             }
 
+
             transaction {
                 // Create tables in proper order
                 SchemaUtils.create(Categories)
@@ -31,6 +33,10 @@ object PosDatabase {
                 SchemaUtils.create(Orders)
                 SchemaUtils.create(OrderItems)
                 SchemaUtils.create(Members)
+                SchemaUtils.create(RawItems)
+                SchemaUtils.create(Recipes)
+                SchemaUtils.create(InventoryTransactions)
+                SchemaUtils.create(DailyInventory)
                 println("✅ Database tables created successfully")
             }
         } catch (e: ClassNotFoundException) {
@@ -41,4 +47,5 @@ object PosDatabase {
             System.err.println("❌ Database initialization failed: ${e.message}")
         }
     }
+
 }

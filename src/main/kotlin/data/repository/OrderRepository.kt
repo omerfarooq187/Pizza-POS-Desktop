@@ -144,6 +144,7 @@ class OrderRepositoryImpl: OrderRepository {
             id = row[OrderItems.id].value,
             itemId = row[OrderItems.itemId],
             variantSize = row[OrderItems.variantSize],
+            variantId = row[OrderItems.variantId],
             quantity = row[OrderItems.quantity],
             price = row[OrderItems.price],
             memberPriceApplied = row[OrderItems.memberPriceApplied],

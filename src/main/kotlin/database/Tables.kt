@@ -45,6 +45,7 @@ object Orders : IntIdTable("orders") {
 object OrderItems : IntIdTable("order_items") {
     val orderId = integer("order_id").references(Orders.id)
     val itemId = integer("item_id").references(MenuItems.id)
+    val variantId = integer("variant_id").references(ItemVariants.id)
     val variantSize = varchar("variant_size", 20)
     val quantity = integer("quantity")
     val price = double("price")  // Price at time of ordering

@@ -109,6 +109,12 @@ fun TabbedInterface() {
                     selectedTab = Tab.REPORTS
                 }
                 Tab.REPORTS -> ReportScreen { }
+                Tab.INVENTORY -> {
+                    InventoryScreen()
+                }
+                Tab.RECIPES -> {
+                    RecipeManagementScreen()
+                }
             }
         }
     }
@@ -120,5 +126,7 @@ enum class Tab(val title: String, val icon: ImageVector) {
     CATEGORIES("Categories", Icons.Default.Category),
     MENU_ITEMS("Menu Items", Icons.Default.Restaurant),
     ORDERS("Orders", Icons.Default.PointOfSale),
-    REPORTS("Reports", Icons.Default.Analytics)
+    REPORTS("Reports", Icons.Default.Analytics),
+    INVENTORY("Inventory", Icons.Default.Inventory),
+    RECIPES("Recipes", Icons.Default.RestaurantMenu)
 }

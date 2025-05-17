@@ -18,6 +18,7 @@ data class Order(
 data class OrderItem(
     val id: Int = 0,
     val itemId: Int,
+    val variantId: Int,  // Add this field
     val itemName: String,
     val variantSize: String,
     val quantity: Int,

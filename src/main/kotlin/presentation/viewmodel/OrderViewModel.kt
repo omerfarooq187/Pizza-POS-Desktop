@@ -5,11 +5,13 @@ import data.model.*
 import data.repository.CategoryRepository
 import data.repository.MenuRepository
 import data.repository.OrderRepository
+import data.repository.RecipeRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import service.InventoryService
 
 class OrderViewModel : KoinComponent {
     // Current Order State
@@ -27,6 +29,12 @@ class OrderViewModel : KoinComponent {
 
     private val _isMember = mutableStateOf(false)
     val isMember: State<Boolean> get() = _isMember
+
+    val inventoryService: InventoryService by inject()
+    private val recipeRepo: RecipeRepository by inject()
+
+    val _alerts = mutableStateListOf<String>()
+    val alerts: List<String> get() = _alerts
 
 
     init {
@@ -53,6 +61,7 @@ class OrderViewModel : KoinComponent {
             _currentOrder.value.items + OrderItem(
                 itemId = item.id,
                 variantSize = variant.size,
+                variantId = variant.id,
                 quantity = newQuantity,
                 price = finalPrice,
                 memberPriceApplied = isMember.value && isItemEligibleForDiscount(item),
@@ -99,7 +108,7 @@ class OrderViewModel : KoinComponent {
                         memberPriceApplied = isMember.value && isItemEligibleForDiscount(menuItem)
                     )
                 } catch (e: Exception) {
-                    // Handle missing items gracefully
+                    e.printStackTrace()
                     null
                 }
             }
@@ -116,18 +125,54 @@ class OrderViewModel : KoinComponent {
 
     fun finalizeOrder() {
         coroutineScope.launch {
-            // Add contact info with defaults
-            val finalOrder = _currentOrder.value.copy(
-                isMember = isMember.value,
-                phone = _currentOrder.value.phone.trim().ifEmpty { "N/B" },
-                email = _currentOrder.value.email.trim().ifEmpty { "N/A" },
-                customerName = _currentOrder.value.customerName.trim().ifEmpty { "N/A" }
-            )
+            try {
+                // 1. Validate inventory first
+                val validationErrors = inventoryService.validateOrderInventory(currentOrder.value.items)
+                if (validationErrors.isNotEmpty()) {
+                    _alerts.addAll(validationErrors)
+                    return@launch
+                }
 
-            orderRepo.createOrder(finalOrder)
-            _currentOrder.value = Order() // Reset order
-            _isMember.value = false
+                // 2. Save the order
+                val finalOrder = createOrderEntity()
+                orderRepo.createOrder(finalOrder)
+
+                val savedOrderId = orderRepo.createOrder(finalOrder)  // Assume this returns new ID
+
+                val inventoryWarnings = inventoryService.updateStockForOrder(
+                    orderItems = finalOrder.items,
+                    orderId = savedOrderId  // Add this parameter
+                )
+                if (inventoryWarnings.isNotEmpty()) {
+                    _alerts.addAll(inventoryWarnings)
+                }
+
+                // 4. Show low stock alerts
+                showLowStockAlerts()
+
+                // 5. Reset state
+                resetOrderState()
+
+            } catch (e: Exception) {
+                _alerts.add("Order failed: ${e.message}")
+            }
         }
+    }
+
+    private fun createOrderEntity(): Order {
+        return _currentOrder.value.copy(
+            isMember = _isMember.value,
+            phone = _currentOrder.value.phone.trim().ifEmpty { "N/B" },
+            email = _currentOrder.value.email.trim().ifEmpty { "N/A" },
+            customerName = _currentOrder.value.customerName.trim().ifEmpty { "N/A" }
+        )
+    }
+
+    private fun resetOrderState() {
+        _currentOrder.value = Order()
+        _isMember.value = false
+        _variantQuantities.clear()
+        _alerts.clear()
     }
 
     fun updateContactInfo(name: String, phone: String, email: String) {
@@ -164,7 +209,6 @@ class OrderViewModel : KoinComponent {
     }
 
     private val _variantQuantities = mutableStateMapOf<String, Int>() // key = itemId + size
-    var variantQuantities: Map<String, Int> = _variantQuantities
 
     fun getQuantity(itemId: Int, variantSize: String): Int {
         return _variantQuantities["$itemId-$variantSize"] ?: 1
@@ -184,5 +228,21 @@ class OrderViewModel : KoinComponent {
     fun updateQuantity(itemId: Int, variantSize: String, newQuantity: Int) {
         val key = "${itemId}-${variantSize}"
         _variantQuantities[key] = newQuantity.coerceAtLeast(1)
+    }
+
+    private suspend fun processOrderInventory(order: Order) {
+        inventoryService.updateStockForOrder(order.items).also {
+            if (it.isNotEmpty()) {
+                _alerts += "Some ingredients couldn't be fully deducted"
+            }
+        }
+    }
+
+    private fun showLowStockAlerts() {
+        coroutineScope.launch {
+            inventoryService.checkLowStock().forEach { item ->
+                _alerts+= "Low stock: ${item.name} (${item.currentStock} ${item.unit})"
+            }
+        }
     }
 }

@@ -21,4 +21,6 @@ val appModule = module {
     single<RawItemRepository> { RawItemRepositoryImpl() }
     single<RecipeRepository> { RecipeRepositoryImpl() }
     single { InventoryService(get(), get()) }
+    single { InventoryViewModel() }
+    single { RecipeViewModel() }
 }

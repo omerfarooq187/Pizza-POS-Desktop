@@ -5,7 +5,7 @@ import org.joda.time.DateTime
 
 // data/model/RawItem.kt
 data class RawItem(
-    val id: Int,
+    val id: Int = 0,
     val name: String,
     val description: String?,
     val unit: String,
