@@ -16,9 +16,17 @@ data class MenuItem(
 
 // data/model/ItemVariant.kt
 data class ItemVariant(
-    val size: String,  // "Small", "Medium", etc.
-    val price: Double,
-    val memberPrice: Double? = null
+    val id: Int = 0,
+    val itemId: Int = 0,          // From ItemVariants.itemId
+    val size: String,         // From ItemVariants.size
+    val price: Double,        // From ItemVariants.price
+    val memberPrice: Double? = null, // From ItemVariants.memberPrice
+    val itemName: String = ""    // From joined MenuItems.name
+)
+
+data class MenuItemWithVariants(
+    val item: MenuItem,
+    val variants: List<ItemVariant>
 )
 
 enum class DiscountType {

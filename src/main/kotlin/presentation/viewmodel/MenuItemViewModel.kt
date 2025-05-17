@@ -15,14 +15,14 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
 class MenuItemViewModel: KoinComponent {
-    val coroutineScope = CoroutineScope(Dispatchers.Main.immediate)
+    private val coroutineScope = CoroutineScope(Dispatchers.Main.immediate)
 
     private val menuRepo: MenuRepository by inject()
     private val categoryRepo: CategoryRepository by inject()
 
     var categories by mutableStateOf(emptyList<Category>())
     var menuItems by mutableStateOf(emptyList<MenuItem>())
-    var currentCategoryId by mutableStateOf<Int?>(null)
+    private var currentCategoryId by mutableStateOf<Int?>(null)
 
     var selectedCategory by mutableStateOf<Category?>(null)
     var itemName by mutableStateOf("")
@@ -33,14 +33,14 @@ class MenuItemViewModel: KoinComponent {
 //    var discountValue by mutableStateOf(0.0)
 
     var showCreateItemDialog by mutableStateOf(false)
-    var editingItem by mutableStateOf<MenuItem?>(null)
+    private var editingItem by mutableStateOf<MenuItem?>(null)
     var showEditDialog by mutableStateOf(false)
 
     init {
         loadCategories()
     }
 
-    fun loadCategories() {
+    private fun loadCategories() {
         coroutineScope.launch {
             try {
                 categories = (categoryRepo.getAllCategories())
@@ -144,8 +144,11 @@ class MenuItemViewModel: KoinComponent {
                 menuRepo.updateItem(updatedItem)
                 // Refresh items list
                 loadItems(selectedCategory?.id ?: return@launch)
-                clearForm()
                 error = null
+                clearForm()
+                showCreateItemDialog = false
+                showEditDialog = false
+                loadItems(currentCategoryId!!)
             } catch (e: Exception) {
                 error = "Failed to update item: ${e.message}"
             }
@@ -159,12 +162,22 @@ class MenuItemViewModel: KoinComponent {
                 menuItems.filter {
                     it.id != itemId
                 }
-//                val category = selectedCategory
                 loadItems(currentCategoryId!!)
                 error = null
             } catch (e: Exception) {
                 error = "Delete failed: ${e.message}"
             }
+        }
+    }
+
+    fun toggleActive(itemId: Int) {
+        coroutineScope.launch {
+            menuRepo.toggleItemActive(itemId)
+
+            val updated = menuItems.map {
+                if (it.id == itemId) it.copy(isActive = !it.isActive) else it
+            }
+            menuItems = updated
         }
     }
 }
