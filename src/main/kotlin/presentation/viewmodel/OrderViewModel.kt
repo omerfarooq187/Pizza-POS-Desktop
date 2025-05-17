@@ -1,9 +1,6 @@
 package presentation.viewmodel
 
-import androidx.compose.runtime.State
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import data.model.*
 import data.repository.CategoryRepository
 import data.repository.MenuRepository
@@ -27,39 +24,62 @@ class OrderViewModel : KoinComponent {
     private val coroutineScope = CoroutineScope(Dispatchers.Main.immediate)
 
     // Member state (simple flag since we don't have member class)
+
     private val _isMember = mutableStateOf(false)
-    val isMember: State<Boolean> = _isMember
+    val isMember: State<Boolean> get() = _isMember
 
 
     init {
         loadMenuCategories()
     }
-    fun addItemToOrder(item: MenuItem, variant: ItemVariant, quantity: Int) {
+    fun addItemToOrder(item: MenuItem, variant: ItemVariant, newQuantity: Int) {
         val finalPrice = calculateMemberPrice(item, variant)
 
-        val orderItem = OrderItem(
-            itemId = item.id,
-            variantSize = variant.size,
-            quantity = quantity,
-            price = finalPrice,
-            memberPriceApplied = _isMember.value && isItemEligibleForDiscount(item),
-            itemName = item.name
+        val existingItemIndex = _currentOrder.value.items.indexOfFirst {
+            it.itemId == item.id && it.variantSize == variant.size
+        }
+
+        val updatedItems = if (existingItemIndex != -1) {
+            // ADD TO EXISTING QUANTITY
+            _currentOrder.value.items.toMutableList().apply {
+                val existing = this[existingItemIndex]
+                this[existingItemIndex] = existing.copy(
+                    quantity = existing.quantity + newQuantity, // Add new quantity to existing
+                    price = finalPrice
+                )
+            }
+        } else {
+            // Add new item
+            _currentOrder.value.items + OrderItem(
+                itemId = item.id,
+                variantSize = variant.size,
+                quantity = newQuantity,
+                price = finalPrice,
+                memberPriceApplied = isMember.value && isItemEligibleForDiscount(item),
+                itemName = item.name
+            )
+        }
+
+        // Calculate new total and update state
+        val newTotal = updatedItems.sumOf { it.price * it.quantity }
+        _currentOrder.value = _currentOrder.value.copy(
+            items = updatedItems,
+            totalAmount = newTotal
         )
 
-        _currentOrder.value = _currentOrder.value.copy(
-            items = _currentOrder.value.items + orderItem,
-            totalAmount = _currentOrder.value.totalAmount + (finalPrice * quantity)
-        )
+        // Reset quantity for this variant
+        updateQuantity(item.id, variant.size, 1)
     }
 
     private fun calculateMemberPrice(item: MenuItem, variant: ItemVariant): Double {
         return if (_isMember.value && isItemEligibleForDiscount(item)) {
-            // Apply 50% discount for members on eligible items
-            variant.price * 0.5
+            variant.memberPrice ?: (variant.price * 0.5) // Use memberPrice if available
         } else {
             variant.price
         }
     }
+
+
 
     private fun isItemEligibleForDiscount(item: MenuItem): Boolean {
         // Add your business logic for eligible items
@@ -67,39 +87,38 @@ class OrderViewModel : KoinComponent {
         return item.categoryId == 1 // Example: Pizza category
     }
 
-//    fun validateMember(phone: String) {
-//        coroutineScope.launch {
-//            // Simple validation (replace with actual implementation)
-//            _isMember.value = orderRepo.isPhoneNumberRegistered(phone)
-//
-//            if (_isMember.value) {
-//                recalculatePrices()
-//            }
-//        }
-//    }
-
     private suspend fun recalculatePrices() {
-        val updatedItems = _currentOrder.value.items.map { item ->
-            val menuItem = menuRepo.getItemById(item.itemId)
-            val variant = menuItem.variants.first { it.size == item.variantSize }
+        try {
+            val updatedItems = _currentOrder.value.items.mapNotNull { orderItem ->
+                try {
+                    val menuItem = menuRepo.getItemById(orderItem.itemId)
+                    val variant = menuItem.variants.first { it.size == orderItem.variantSize }
 
-            item.copy(
-                price = calculateMemberPrice(menuItem, variant),
-                memberPriceApplied = _isMember.value && isItemEligibleForDiscount(menuItem)
+                    orderItem.copy(
+                        price = calculateMemberPrice(menuItem, variant),
+                        memberPriceApplied = isMember.value && isItemEligibleForDiscount(menuItem)
+                    )
+                } catch (e: Exception) {
+                    // Handle missing items gracefully
+                    null
+                }
+            }
+
+            _currentOrder.value = _currentOrder.value.copy(
+                items = updatedItems,
+                totalAmount = updatedItems.sumOf { it.price * it.quantity }
             )
+        } catch (e: Exception) {
+            // Handle any errors in price recalculation
+            e.printStackTrace()
         }
-
-        _currentOrder.value = _currentOrder.value.copy(
-            items = updatedItems,
-            totalAmount = updatedItems.sumOf { it.price * it.quantity }
-        )
     }
 
     fun finalizeOrder() {
         coroutineScope.launch {
             // Add contact info with defaults
             val finalOrder = _currentOrder.value.copy(
-                isMember = _isMember.value,
+                isMember = isMember.value,
                 phone = _currentOrder.value.phone.trim().ifEmpty { "N/B" },
                 email = _currentOrder.value.email.trim().ifEmpty { "N/A" },
                 customerName = _currentOrder.value.customerName.trim().ifEmpty { "N/A" }
@@ -135,7 +154,35 @@ class OrderViewModel : KoinComponent {
     suspend fun setMemberStatus(isMember: Boolean) {
         _isMember.value = isMember
         recalculatePrices()
+        refreshQuantities()
     }
 
+    private fun refreshQuantities() {
+        _variantQuantities.keys.forEach { key ->
+            _variantQuantities[key] = _variantQuantities[key] ?: 1
+        }
+    }
 
+    private val _variantQuantities = mutableStateMapOf<String, Int>() // key = itemId + size
+    var variantQuantities: Map<String, Int> = _variantQuantities
+
+    fun getQuantity(itemId: Int, variantSize: String): Int {
+        return _variantQuantities["$itemId-$variantSize"] ?: 1
+    }
+
+    fun incrementQuantity(itemId: Int, variantSize: String) {
+        val key = "$itemId-$variantSize"
+        _variantQuantities[key] = (_variantQuantities[key] ?: 1) + 1
+    }
+
+    fun decrementQuantity(itemId: Int, variantSize: String) {
+        val key = "$itemId-$variantSize"
+        val current = _variantQuantities[key] ?: 1
+        if (current > 1) _variantQuantities[key] = current - 1
+    }
+
+    fun updateQuantity(itemId: Int, variantSize: String, newQuantity: Int) {
+        val key = "${itemId}-${variantSize}"
+        _variantQuantities[key] = newQuantity.coerceAtLeast(1)
+    }
 }

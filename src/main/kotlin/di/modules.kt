@@ -4,6 +4,7 @@ import data.repository.*
 import database.PosDatabase
 import org.koin.dsl.module
 import presentation.viewmodel.*
+import service.InventoryService
 
 val appModule = module {
     single(createdAtStart = true) {
@@ -17,4 +18,7 @@ val appModule = module {
     single { OrderViewModel() }
     single { ReportViewModel() }
     single { DashboardViewModel() }
+    single<RawItemRepository> { RawItemRepositoryImpl() }
+    single<RecipeRepository> { RecipeRepositoryImpl() }
+    single { InventoryService(get(), get()) }
 }

@@ -244,11 +244,11 @@ private fun OrderItemRow(item: OrderItem, viewModel: OrderViewModel) {
 
                     Column(horizontalAlignment = Alignment.End) {
                         Text(
-                            "$${"%.2f".format(item.price)} x ${item.quantity}",
+                            "Rs. ${"%.2f".format(item.price)} x ${item.quantity}",
                             style = MaterialTheme.typography.bodyLarge
                         )
                         Text(
-                            "Subtotal: $${"%.2f".format(item.price * item.quantity)}",
+                            "Subtotal: Rs. ${"%.2f".format(item.price * item.quantity)}",
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Bold
                         )
@@ -446,9 +446,11 @@ private fun MenuItemCard(item: MenuItem, viewModel: OrderViewModel) {
 
             AnimatedVisibility(visible = expanded) {
                 Column(modifier = Modifier.padding(top = 12.dp)) {
-                    item.variants.forEach { variant ->
-                        VariantRow(item, variant, viewModel)
-                        if (variant != item.variants.last()) {
+                    item.variants.forEachIndexed { index, variant ->
+                        key("${item.id}_${variant.size}") { // Add unique key
+                            VariantRow(item, variant, viewModel)
+                        }
+                        if (index != item.variants.lastIndex) {
                             Divider(
                                 color = MaterialTheme.colorScheme.outlineVariant,
                                 thickness = 0.5.dp,
@@ -464,10 +466,13 @@ private fun MenuItemCard(item: MenuItem, viewModel: OrderViewModel) {
 
 @Composable
 private fun VariantRow(item: MenuItem, variant: ItemVariant, viewModel: OrderViewModel) {
-    var quantity by remember { mutableStateOf(1) }
+    val quantity by remember {
+        derivedStateOf { viewModel.getQuantity(item.id, variant.size) }
+    }
     val isAdded = viewModel.currentOrder.value.items.any {
         it.itemId == item.id && it.variantSize == variant.size
     }
+
 
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -484,14 +489,14 @@ private fun VariantRow(item: MenuItem, variant: ItemVariant, viewModel: OrderVie
 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = "$${"%.2f".format(variant.price)}",
+                    text = "Rs ${"%.2f".format(variant.price)}",
                     style = MaterialTheme.typography.bodyLarge
                 )
 
                 variant.memberPrice?.let {
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "$${"%.2f".format(it)}",
+                        text = "Rs ${"%.2f".format(it)}",
                         style = MaterialTheme.typography.bodyMedium,
                         color = Color.Green,
                         modifier = Modifier
@@ -511,26 +516,23 @@ private fun VariantRow(item: MenuItem, variant: ItemVariant, viewModel: OrderVie
         ) {
             QuantitySelector(
                 quantity = quantity,
-                onDecrement = { if (quantity > 1) quantity-- },
-                onIncrement = { quantity++ },
+                onDecrement = { if (quantity > 1) viewModel.decrementQuantity(item.id, variant.size) },
+                onIncrement = { viewModel.incrementQuantity(item.id, variant.size) },
                 modifier = Modifier.width(120.dp)
             )
 
             FilledTonalButton(
                 onClick = {
                     viewModel.addItemToOrder(item, variant, quantity)
-                    quantity = 1
                 },
-                enabled = !isAdded,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFFFE724C),
-                    contentColor = Color.White,
-                    disabledContainerColor = Color.Gray.copy(alpha = 0.2f),
-                    disabledContentColor = Color.Gray
+                    containerColor = if (isAdded) Color.Blue else Color(0xFFFE724C),
+                    contentColor = Color.White
                 )
             ) {
-                Text(if (isAdded) "Added" else "Add")
+                Text(if (isAdded) "Add More" else "Add") // Better button label
             }
+
         }
     }
 }
